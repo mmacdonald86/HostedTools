@@ -26,6 +26,9 @@ namespace com.gt.NeptuneTest.Module
             config.SetConfigurationValue("POIDBCONFIG_SERVER", $"\"{dockerHost}:5432\"");
             config.SetConfigurationValue("POIDBCONFIG_USER", "\"admin\"");
             config.SetConfigurationValue("POIDBCONFIG_PWD", "\"admin\"");
+            config.SetConfigurationValue("POI_PRIMARY_HOST", dockerHost);
+            config.SetConfigurationValue("POI_REPLICA_HOST", dockerHost);
+
             return result;
         }
 
