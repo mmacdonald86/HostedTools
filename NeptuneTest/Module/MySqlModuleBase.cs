@@ -82,28 +82,13 @@ namespace com.gt.NeptuneTest.Module
                 });
             }
 
-            // Load archive
-            var repoConfigPath = config.ExpandValue(moduleSettings[RepoConfig].AsString);
-            SqlRepositoryConfiguration repoConfig;
-            using (var reader = new StreamReader(repoConfigPath))
-            using (var jsonReader = new JsonTextReader(reader))
-            {
-                repoConfig = new JsonFactory().GetSerializer().Deserialize<SqlRepositoryConfiguration>(jsonReader);
-            }
-            var sqlConn = isDocker ? new MySqlConnectionSource("127.0.0.1", port, null, "myuser", "mypassword") : new MySqlConnectionSource("localhost", port, "root");
-            var repo = new SqlRepository(repoConfig, sqlConn);
-            var folderArchive = new FolderRepository(GetArchiveFolder(config, moduleSettings), repo.Schema);
-            var title = moduleSettings[ArchiveTitle].AsString;
-            var spec = folderArchive.AvailableArchives().FirstOrDefault(a => a.Title == title);
-            if (spec == null)
-            {
-                config.Monitor.Writer.WriteLine($"No archive with title [{title}] found");
-                return result;
-            }
-
-            repo.WriteArchive(folderArchive.GetArchive(spec, config.Monitor), config.Monitor);
-
             return result;
+        }
+
+        protected void LoadArchive(ITestInstance config, IHtValue moduleSettings, int port)
+        {
+            var sqlConn = TestSetup.UseDocker.Value<bool>(SettingManager) ? new MySqlConnectionSource("127.0.0.1", port, null, "myuser", "mypassword") : new MySqlConnectionSource("localhost", port, "root");
+            LoadArchive(sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString); 
         }
 
         protected virtual async Task ShutdownDaemon(ITestInstance config, IHtValue teardown)

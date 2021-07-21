@@ -11,6 +11,7 @@ namespace com.gt.NeptuneTest.Module
         public override async Task<IHtValue> Setup(ITestInstance config, IHtValue moduleSettings)
         {
             var result = await SetupDaemon(config, moduleSettings).ConfigureAwait(false);
+            LoadArchive(config, moduleSettings, (int)result[PORT].AsLong);
             config.SetConfigurationValue("XADDB_USER", "root");
             config.SetConfigurationValue("XADDB_PASSWORD", string.Empty);
             config.SetConfigurationValue("XADDB_SERVER", "localhost");
