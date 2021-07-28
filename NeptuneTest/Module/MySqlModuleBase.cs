@@ -56,7 +56,20 @@ namespace com.gt.NeptuneTest.Module
             }
             initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"/usr/sbin/mysqld {mysqld_common_settings}\"", true);
 
-            await Task.Delay(5000);
+            // Wait until you can connect to database successfully
+            for (int i = 0; i<10; i++)
+            {
+                await Task.Delay(2000);
+                int connectResult = await RunStrings(config, port, new string[] { "\\q" });
+                if (connectResult == 0)
+                {
+                    break;
+                }
+                if (i==9)
+                {
+                    throw new InvalidOperationException($"Failed to connect to mysld instance");
+                }
+            }
             var pid = initProcess.Id;
 
             var result = new JsonHtValue();
