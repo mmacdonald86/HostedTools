@@ -1,4 +1,5 @@
-﻿using com.antlersoft.HostedTools.Framework.Interface.Plugin;
+﻿using com.antlersoft.HostedTools.Archive.Interface;
+using com.antlersoft.HostedTools.Framework.Interface.Plugin;
 using com.antlersoft.HostedTools.Framework.Interface.Setting;
 using com.antlersoft.HostedTools.Interface;
 using com.antlersoft.HostedTools.Pipeline;
@@ -21,6 +22,7 @@ namespace com.gt.NeptuneTest.Model
     {
         private ISettingManager _settingManager;
         private List<INeptuneTestModule> _modules;
+        private List<IArchiveFilterFactory> _filterFactories;
         private IJsonFactory _jsonFactory = new JsonFactory();
         private TestConfig _testConfig;
 
@@ -28,10 +30,13 @@ namespace com.gt.NeptuneTest.Model
 
         private string _instanceFolder;
 
-        public TestInstance(ISettingManager settingManager, IEnumerable<INeptuneTestModule> modules, IWorkMonitor monitor)
+        private List<IArchiveFilter> _archiveFilters = new List<IArchiveFilter>();
+
+        public TestInstance(ISettingManager settingManager, IEnumerable<INeptuneTestModule> modules, IEnumerable<IArchiveFilterFactory> filterFactories,  IWorkMonitor monitor)
         {
             _settingManager = settingManager;
             _modules = new List<INeptuneTestModule>(modules);
+            _filterFactories = new List<IArchiveFilterFactory>(filterFactories);
             var configPath = TestSetup.TestConfigPath.Value<string>(_settingManager);
             using (StreamReader sr = new StreamReader(configPath))
             using (JsonTextReader jr = new JsonTextReader(sr))
@@ -44,6 +49,19 @@ namespace com.gt.NeptuneTest.Model
             UseDocker = TestSetup.UseDocker.Value<bool>(_settingManager);
             DockerExe = TestSetup.DockerExe.Value<string>(_settingManager);
             ContainerName = TestSetup.ContainerName.Value<string>(_settingManager);
+
+            if (_testConfig.ArchiveFilter!=null)
+            {
+                foreach (var item in _testConfig.ArchiveFilter)
+                {
+                    var name = item["Name"];
+                    if (name != null && ! name.IsEmpty)
+                    {
+                        var matchingFactory = _filterFactories.First(f => f.Name == name.AsString);
+                        _archiveFilters.Add(matchingFactory.ConfigureFilter(item));
+                    }
+                }
+            }
         }
         public IList<INeptuneTestModule> AllModules => _modules;
 
@@ -63,9 +81,10 @@ namespace com.gt.NeptuneTest.Model
 
         public ITestConfig Config => _testConfig;
 
+        public IEnumerable<IArchiveFilter> ArchiveFilters => _archiveFilters;
+
         public string GetExpandedConfigurationValue(string key)
         {
-            string v;
             var val = _configSettings[key];
             if (val != null)
             {
@@ -273,6 +292,18 @@ namespace com.gt.NeptuneTest.Model
             _configSettings[key] = new JsonHtValue(value);
         }
 
+        private async Task<IHtValue> ArrayModuleResults(List<Task<IHtValue>> moduleTasks)
+        {
+            var results = await Task.WhenAll(moduleTasks);
+            var result = new JsonHtValue();
+            int i = 0;
+            foreach (var r in results)
+            {
+                result[i++] = r;
+            }
+            return result;
+        }
+
         internal void RunSetup()
         {
             _instanceFolder = Path.GetTempFileName();
@@ -302,12 +333,6 @@ namespace com.gt.NeptuneTest.Model
 
             _configSettings = configTemplate.ConfigValues;
 
-            var setupResults = new Dictionary<string, Task<IHtValue>>();
-            foreach (var moduleData in _testConfig.Modules.AsDictionaryElements)
-            {
-                var module = AllModules.First(m => moduleData.Key == m.Name);
-                setupResults[module.Name] = module.Setup(this, moduleData.Value);
-            }
             CancellationToken token;
             if (Monitor.Cast<ICancelableMonitor>() is ICancelableMonitor cancelable)
             {
@@ -316,6 +341,24 @@ namespace com.gt.NeptuneTest.Model
             else
             {
                 token = CancellationToken.None;
+            }
+            var setupResults = new Dictionary<string, Task<IHtValue>>();
+            foreach (var moduleData in _testConfig.Modules.AsDictionaryElements)
+            {
+                var module = AllModules.First(m => moduleData.Key == m.Name);
+                if (moduleData.Value.IsArray)
+                {
+                    var moduleTasks = new List<Task<IHtValue>>();
+                    foreach (var r in moduleData.Value.AsArrayElements)
+                    {
+                        moduleTasks.Add(module.Setup(this, r));
+                    }
+                    setupResults[module.Name] = ArrayModuleResults(moduleTasks);
+                }
+                else
+                {
+                    setupResults[module.Name] = module.Setup(this, moduleData.Value);
+                }
             }
 
             Task.WaitAll(setupResults.Values.ToArray(), token);
@@ -487,7 +530,18 @@ namespace com.gt.NeptuneTest.Model
 
             foreach (var kvp in teardown.ModuleData.AsDictionaryElements)
             {
-                _modules.First(m => m.Name == kvp.Key).Teardown(this, kvp.Value).Wait(token);
+                var module = _modules.First(m => m.Name == kvp.Key);
+                if (kvp.Value.IsArray)
+                {
+                    foreach (var v in kvp.Value.AsArrayElements)
+                    {
+                        module.Teardown(this, v).Wait(token);
+                    }
+                }
+                else
+                {
+                    module.Teardown(this, kvp.Value).Wait(token);
+                }
             }
             if (!token.IsCancellationRequested)
             {

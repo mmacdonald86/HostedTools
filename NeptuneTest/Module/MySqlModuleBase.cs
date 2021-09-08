@@ -101,7 +101,7 @@ namespace com.gt.NeptuneTest.Module
         protected void LoadArchive(ITestInstance config, IHtValue moduleSettings, int port)
         {
             var sqlConn = TestSetup.UseDocker.Value<bool>(SettingManager) ? new MySqlConnectionSource("127.0.0.1", port, null, "myuser", "mypassword") : new MySqlConnectionSource("localhost", port, "root");
-            LoadArchive(sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString); 
+            LoadArchive(config, sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString); 
         }
 
         protected virtual async Task ShutdownDaemon(ITestInstance config, IHtValue teardown)

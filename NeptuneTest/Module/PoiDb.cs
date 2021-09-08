@@ -21,7 +21,7 @@ namespace com.gt.NeptuneTest.Module
 
             var connection = new PostgreSqlConnectionSource($"Host={host};Port=5432;Username=admin;Password=admin;Database={result[DB_NAME].AsString}");
 
-            LoadArchive(connection, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), config.ExpandValue(moduleSettings[ArchiveTitle].AsString));
+            LoadArchive(config, connection, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), config.ExpandValue(moduleSettings[ArchiveTitle].AsString));
 
             config.SetConfigurationValue("POIDBCONFIG_SERVER", $"\"{dockerHost}:5432\"");
             config.SetConfigurationValue("POIDBCONFIG_USER", "\"admin\"");

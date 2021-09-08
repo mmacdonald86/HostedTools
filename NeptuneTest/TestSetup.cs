@@ -1,4 +1,5 @@
-﻿using com.antlersoft.HostedTools.Framework.Interface.Plugin;
+﻿using com.antlersoft.HostedTools.Archive.Interface;
+using com.antlersoft.HostedTools.Framework.Interface.Plugin;
 using com.antlersoft.HostedTools.Framework.Interface.Setting;
 using com.antlersoft.HostedTools.Framework.Model.Menu;
 using com.antlersoft.HostedTools.Framework.Model.Plugin;
@@ -29,6 +30,9 @@ namespace com.gt.NeptuneTest
         [ImportMany]
         public List<INeptuneTestModule> Modules;
 
+        [ImportMany]
+        public List<IArchiveFilterFactory> FilterFactories;
+
         public TestSetup()
         : base(new MenuItem[] { new MenuItem("NeptuneTest", "Neptune Testing"),
         new MenuItem("NeptuneTest.TestSetup", "Test Setup", typeof(TestSetup).FullName, "NeptuneTest") },
@@ -39,7 +43,7 @@ namespace com.gt.NeptuneTest
 
         public override void Perform(IWorkMonitor monitor)
         {
-            var instance = new TestInstance(SettingManager, Modules, monitor);
+            var instance = new TestInstance(SettingManager, Modules, FilterFactories, monitor);
             instance.RunSetup();
         }
     }
@@ -55,9 +59,12 @@ namespace com.gt.NeptuneTest
         [ImportMany]
         public List<INeptuneTestModule> Modules;
 
+        [ImportMany]
+        public List<IArchiveFilterFactory> FilterFactories;
+
         public override void Perform(IWorkMonitor monitor)
         {
-            var instance = new TestInstance(SettingManager, Modules, monitor);
+            var instance = new TestInstance(SettingManager, Modules, FilterFactories, monitor);
             instance.RunTeardown();
         }
     }

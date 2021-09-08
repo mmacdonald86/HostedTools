@@ -1,8 +1,6 @@
 ﻿using com.antlersoft.HostedTools.Interface;
 using com.gt.NeptuneTest.Interface;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace com.gt.NeptuneTest.Model
 {
@@ -14,6 +12,7 @@ namespace com.gt.NeptuneTest.Model
         public string MySqlSkeleton {get; set;}
         public string PostgresSkeleton { get; set; }
         public string ArchiveFolder { get; set; }
+        public List<IHtValue> ArchiveFilter { get; set; }
         public IHtValue Modules  { get; set; }
     }
 }

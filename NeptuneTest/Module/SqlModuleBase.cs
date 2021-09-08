@@ -54,7 +54,7 @@ namespace com.gt.NeptuneTest.Module
             return config.ExpandValue(GetDefaultSkeleton(config.Config));
         }
 
-        protected void LoadArchive(ISqlConnectionSource connectionSource, IWorkMonitor monitor, string repoFolder, string schemaConfig, string archiveTitle)
+        protected void LoadArchive(ITestInstance instance, ISqlConnectionSource connectionSource, IWorkMonitor monitor, string repoFolder, string schemaConfig, string archiveTitle)
         {
             SqlRepositoryConfiguration repoConfig;
             using (var reader = new StreamReader(schemaConfig))
@@ -71,7 +71,14 @@ namespace com.gt.NeptuneTest.Module
                 return;
             }
 
-            repo.WriteArchive(folderArchive.GetArchive(spec, monitor), monitor);
+            var archive = folderArchive.GetArchive(spec, monitor);
+
+            foreach (var filter in instance.ArchiveFilters)
+            {
+                archive = filter.GetFilteredArchive(archive);
+            }
+
+            repo.WriteArchive(archive, monitor);
 
         }
     }

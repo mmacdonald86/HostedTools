@@ -1,4 +1,5 @@
-﻿using com.antlersoft.HostedTools.Framework.Interface.Plugin;
+﻿using com.antlersoft.HostedTools.Archive.Interface;
+using com.antlersoft.HostedTools.Framework.Interface.Plugin;
 using com.antlersoft.HostedTools.Interface;
 using System;
 using System.Collections.Generic;
@@ -38,6 +39,11 @@ namespace com.gt.NeptuneTest.Interface
         IWorkMonitor Monitor { get; }
 
         ITestConfig Config { get; }
+
+        /// <summary>
+        /// Configured archive filters for this test instance, in the order they should be applied
+        /// </summary>
+        IEnumerable<IArchiveFilter> ArchiveFilters { get; }
 
         string ExpandValue(string v);
 
