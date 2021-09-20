@@ -14,7 +14,7 @@ namespace com.gt.NeptuneTest.Module
             LoadArchive(config, moduleSettings, (int)result[PORT].AsLong);
             config.SetConfigurationValue("XADDB_USER", "root");
             config.SetConfigurationValue("XADDB_PASSWORD", string.Empty);
-            config.SetConfigurationValue("XADDB_SERVER", "127.0.01");
+            config.SetConfigurationValue("XADDB_SERVER", "127.0.0.1");
             config.SetConfigurationValue("XADDB_PORT", result[PORT].AsString);
             return result;
         }
