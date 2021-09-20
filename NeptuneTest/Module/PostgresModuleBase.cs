@@ -30,6 +30,9 @@ namespace com.gt.NeptuneTest.Module
 
             var connectionParams = GetConnectionParams();
 
+            var dropProcess = await config.RunCommandLine("/usr/bin/dropdb", $"--if-exists {connectionParams} {dbname}", false);
+            dropProcess.WaitForExit();
+
             var process = await config.RunCommandLine("/usr/bin/createdb", $"{connectionParams} {dbname}");
             if (process == null || !process.HasExited || process.ExitCode != 0)
             {
