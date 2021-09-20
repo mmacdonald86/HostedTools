@@ -390,10 +390,14 @@ namespace com.gt.NeptuneTest.Model
 
         private async Task CreateConfigurationFileFromTemplate(string configFile, IList<Tuple<Regex, string>> regexReplacements)
         {
+            using (var memoryStream = new MemoryStream())
             using (var reader = new StreamReader($"{NeptuneSource}/config/{configFile}.template"))
-            using (var writer = new StreamWriter($"{NeptuneHome}/conf/{configFile}"))
+            using (var writer = new StreamWriter(memoryStream))
             {
                 await CreateConfigurationFileFromTemplate(reader, writer, regexReplacements).ConfigureAwait(false);
+                writer.Flush();
+                memoryStream.Seek(0L, SeekOrigin.Begin);
+                await RunCommandLine("/usr/bin/bash", $"-c \"/bin/cat > '{NeptuneHome}/conf/{configFile}'\"", false, memoryStream).ConfigureAwait(false);
             }
         }
 
