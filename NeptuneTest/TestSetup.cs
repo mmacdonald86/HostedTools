@@ -6,7 +6,6 @@ using com.antlersoft.HostedTools.Framework.Model.Plugin;
 using com.antlersoft.HostedTools.Framework.Model.Setting;
 using com.gt.NeptuneTest.Interface;
 using com.gt.NeptuneTest.Model;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 
@@ -37,7 +36,10 @@ namespace com.gt.NeptuneTest
         : base(new MenuItem[] { new MenuItem("NeptuneTest", "Neptune Testing"),
         new MenuItem("NeptuneTest.TestSetup", "Test Setup", typeof(TestSetup).FullName, "NeptuneTest") },
         new string[] { InitialConfigTemplate.FullKey(), TestConfigPath.FullKey(), NeptuneHome.FullKey(), NeptuneSrc.FullKey(), UseDocker.FullKey(), ContainerName.FullKey(), DockerExe.FullKey(), PoiDbNetworkAddress.FullKey(), DataRoot.FullKey()  })
-        { }
+        {
+            InitialConfigTemplate.InjectImplementation(typeof(IEditablePath), new EditablePath());
+            TestConfigPath.InjectImplementation(typeof(IEditablePath), new EditablePath());
+        }
 
         public IEnumerable<ISettingDefinition> Definitions => new ISettingDefinition[] { InitialConfigTemplate, TestConfigPath, NeptuneHome, NeptuneSrc, UseDocker, DockerExe, ContainerName, PoiDbNetworkAddress, TearDownData, DataRoot };
 
