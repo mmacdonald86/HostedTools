@@ -20,6 +20,7 @@ namespace com.gt.NeptuneTest.Module
         protected const string PIDFILE = "PIDFILE";
         protected const string BASEDIR = "BASEDIR";
         protected const string PORT = "PORT";
+        protected const string DockerPort = "DockerPort";
 
         protected override string GetDefaultSkeleton(ITestConfig config)
         {
@@ -34,15 +35,16 @@ namespace com.gt.NeptuneTest.Module
             var isDocker = TestSetup.UseDocker.Value<bool>(SettingManager);
             if (isDocker)
             {
-                port = 15654;
+                port = (int)(moduleSettings[DockerPort]?.AsLong??15654);
             }
+            config.RunCommandLine($"/usr/bin/bash", $"-c \"kill $(ps -ef | grep \"^mysql.*port={port}\" | awk '{{print $2}}')\"").ConfigureAwait(false);
             var basedir = $"/tmp/{Path.GetFileName(config.InstanceFolder)}";
-            await config.RunCommandLine("/usr/bin/mkdir", $"{basedir}");
+            await config.RunCommandLine("/usr/bin/mkdir", $"{basedir}").ConfigureAwait(false);
             var datapath = $"{basedir}/data";
-            await config.RunCommandLine("/usr/bin/mkdir", $"{datapath}");
+            await config.RunCommandLine("/usr/bin/mkdir", $"{datapath}").ConfigureAwait(false);
             var errorfile = $"{basedir}/mysqld.log";
 
-            await config.RunCommandLine("/bin/chmod", $"0777 {basedir} {datapath}");
+            await config.RunCommandLine("/bin/chmod", $"0777 {basedir} {datapath}").ConfigureAwait(false);
             var pidfile = $"{basedir}/mysql.pid";
             var mysqld_common_settings = $"--lower-case-table-names=1 --datadir {datapath} --explicit-defaults-for-timestamp=FALSE --console --log-error={errorfile} --pid-file={pidfile} --port={port} --socket={basedir}/mysql.sock";
             var initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"echo Initializing mysqld at {basedir}; /usr/sbin/mysqld {mysqld_common_settings} --initialize-insecure\"");
@@ -92,7 +94,7 @@ namespace com.gt.NeptuneTest.Module
                     "GRANT ALL PRIVILEGES ON *.*  TO 'myuser'@'%' WITH GRANT OPTION;",
                     "FLUSH PRIVILEGES;",
                     "\\q"
-                });
+                }).ConfigureAwait(false);
             }
 
             return result;
@@ -114,7 +116,7 @@ namespace com.gt.NeptuneTest.Module
         {
             using (var input = new FileStream(path, FileMode.Open))
             {
-                var process = await config.RunCommandLine("/usr/bin/mysql", $"--host=localhost --protocol=TCP --port={port}", false, input);
+                var process = await config.RunCommandLine("/usr/bin/mysql", $"--host=localhost --protocol=TCP --port={port}", false, input).ConfigureAwait(false);
                 if (process == null || ! process.HasExited)
                 {
                     return -1;
@@ -138,7 +140,7 @@ namespace com.gt.NeptuneTest.Module
                 }
                 writer.Flush();
                 input.Seek(0L, SeekOrigin.Begin);
-                var process = await config.RunCommandLine("/usr/bin/mysql", $"--host=localhost --protocol=TCP --port={port}", false, input);
+                var process = await config.RunCommandLine("/usr/bin/mysql", $"--host=localhost --protocol=TCP --port={port}", false, input).ConfigureAwait(false);
                 if (process == null || !process.HasExited)
                 {
                     return -1;
