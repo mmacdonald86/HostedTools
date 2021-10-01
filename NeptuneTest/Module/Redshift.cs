@@ -25,6 +25,10 @@ namespace com.gt.NeptuneTest.Module
             LoadArchive(config, connection, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), config.ExpandValue(moduleSettings[ArchiveTitle].AsString));
 
             config.SetConfigurationValue("REDSHIFT_HOST", $"\"{dockerHost}\"");
+            config.SetConfigurationValue("REDSHIFT_DB", $"\"{result[DB_NAME].AsString}\"");
+            config.SetConfigurationValue("REDSHIFT_USER", "\"admin\"");
+            config.SetConfigurationValue("REDSHIFT_PWD", "\"admin\"");
+            config.SetConfigurationValue("REDSHIFT_PORT", "\"5432\"");
             return result;
         }
     }
