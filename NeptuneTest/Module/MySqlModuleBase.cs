@@ -37,7 +37,7 @@ namespace com.gt.NeptuneTest.Module
             {
                 port = (int)(moduleSettings[DockerPort]?.AsLong??15654);
             }
-            config.RunCommandLine($"/usr/bin/bash", $"-c \"kill $(ps -ef | grep \"^mysql.*port={port}\" | awk '{{print $2}}')\"").ConfigureAwait(false);
+            await config.RunCommandLine($"/usr/bin/bash", $"-c \"kill $(ps -ef | grep \"^mysql.*port={port}\" | awk '{{print $2}}')\"").ConfigureAwait(false);
             var basedir = $"/tmp/{Path.GetFileName(config.InstanceFolder)}";
             await config.RunCommandLine("/usr/bin/mkdir", $"{basedir}").ConfigureAwait(false);
             var datapath = $"{basedir}/data";
