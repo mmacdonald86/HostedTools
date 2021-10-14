@@ -47,7 +47,7 @@ namespace com.gt.NeptuneTest.Module
             await config.RunCommandLine("/bin/chmod", $"0777 {basedir} {datapath}").ConfigureAwait(false);
             var pidfile = $"{basedir}/mysql.pid";
             var mysqld_common_settings = $"--lower-case-table-names=1 --datadir {datapath} --explicit-defaults-for-timestamp=FALSE --console --log-error={errorfile} --pid-file={pidfile} --port={port} --socket={basedir}/mysql.sock";
-            var initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"echo Initializing mysqld at {basedir}; /usr/sbin/mysqld {mysqld_common_settings} --initialize-insecure\"");
+            var initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"echo Initializing mysqld at {basedir}; /usr/sbin/mysqld {mysqld_common_settings} --initialize-insecure\"").ConfigureAwait(false);
             if (initProcess == null || ! initProcess.HasExited)
             {
                 throw new InvalidOperationException($"Failed to initialize mysql process: {mysqld_common_settings}");
@@ -56,13 +56,13 @@ namespace com.gt.NeptuneTest.Module
             {
                 throw new InvalidOperationException($"Exit code {initProcess.ExitCode} initializing mysql: {mysqld_common_settings}");
             }
-            initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"/usr/sbin/mysqld {mysqld_common_settings}\"", true);
+            initProcess = await config.RunCommandLine("/bin/su", $"mysql --shell=/bin/sh -c \"/usr/sbin/mysqld {mysqld_common_settings}\"", true).ConfigureAwait(false);
 
             // Wait until you can connect to database successfully
             for (int i = 0; i<10; i++)
             {
                 await Task.Delay(2000);
-                int connectResult = await RunStrings(config, port, new string[] { "\\q" });
+                int connectResult = await RunStrings(config, port, new string[] { "\\q" }).ConfigureAwait(false);
                 if (connectResult == 0)
                 {
                     break;
@@ -81,10 +81,10 @@ namespace com.gt.NeptuneTest.Module
             result[PORT] = new JsonHtValue(port);
 
             // Load skeleton
-            int skelResult = await RunScript(config, GetSkeleton(config, moduleSettings), port);
+            int skelResult = await RunScript(config, skeleton, port).ConfigureAwait(false);
             if (skelResult < 0)
             {
-                throw new InvalidOperationException($"Failed to run skeleton mysql script {GetSkeleton(config, moduleSettings)}");
+                throw new InvalidOperationException($"Failed to run skeleton mysql script {skeleton}");
             }
 
             if (isDocker)
@@ -97,13 +97,32 @@ namespace com.gt.NeptuneTest.Module
                 }).ConfigureAwait(false);
             }
 
+            // Load time zone info into mysql instance
+            await config.RunCommandLine("/usr/bin/bash", $"-c \"mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql --host=localhost --protocol=TCP --port={port} mysql\"");
+
             return result;
         }
 
         protected void LoadArchive(ITestInstance config, IHtValue moduleSettings, int port)
         {
             var sqlConn = TestSetup.UseDocker.Value<bool>(SettingManager) ? new MySqlConnectionSource("127.0.0.1", port, null, "myuser", "mypassword") : new MySqlConnectionSource("localhost", port, "root");
-            LoadArchive(config, sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString); 
+            try
+            {
+                LoadArchive(config, sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString);
+            }
+            catch (MySqlConnector.MySqlException ex)
+            {
+                config.Monitor.Writer.WriteLine($"Caught exception {ex}");
+
+                if (ex.ErrorCode == MySqlConnector.MySqlErrorCode.UnableToConnectToHost)
+                {
+                    Task.WaitAll(new[] { Task.Delay(15000) });
+                    config.Monitor.Writer.WriteLine("Trying to restart connection to MySQL connection source");
+                    LoadArchive(config, sqlConn, config.Monitor, GetArchiveFolder(config, moduleSettings), config.ExpandValue(moduleSettings[RepoConfig].AsString), moduleSettings[ArchiveTitle].AsString);
+                }
+                else
+                    throw;
+            }
         }
 
         protected virtual async Task ShutdownDaemon(ITestInstance config, IHtValue teardown)
