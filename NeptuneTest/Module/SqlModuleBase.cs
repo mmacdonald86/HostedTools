@@ -1,4 +1,5 @@
-﻿using com.antlersoft.HostedTools.Archive.Model;
+﻿using com.antlersoft.HostedTools.Archive.Interface;
+using com.antlersoft.HostedTools.Archive.Model;
 using com.antlersoft.HostedTools.Archive.Model.Configuration;
 using com.antlersoft.HostedTools.Framework.Interface.Plugin;
 using com.antlersoft.HostedTools.Framework.Interface.Setting;
@@ -8,6 +9,7 @@ using com.antlersoft.HostedTools.Serialization;
 using com.antlersoft.HostedTools.Sql.Interface;
 using com.gt.NeptuneTest.Interface;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
@@ -25,6 +27,9 @@ namespace com.gt.NeptuneTest.Module
 
         [Import]
         public ISettingManager SettingManager { get; set; }
+
+        [ImportMany]
+        public IEnumerable<ISpecialColumnValueGetter> ColumnGetters { get; set; }
 
         abstract public string Name { get; }
 
@@ -62,7 +67,7 @@ namespace com.gt.NeptuneTest.Module
             {
                 repoConfig = new JsonFactory().GetSerializer().Deserialize<SqlRepositoryConfiguration>(jsonReader);
             }
-            var repo = new SqlRepository(repoConfig, connectionSource);
+            var repo = new SqlRepository(repoConfig, connectionSource, new List<ISpecialColumnValueGetter>(ColumnGetters));
             var folderArchive = new FolderRepository(repoFolder, repo.Schema);
             var spec = folderArchive.AvailableArchives().FirstOrDefault(a => a.Title == archiveTitle);
             if (spec == null)
