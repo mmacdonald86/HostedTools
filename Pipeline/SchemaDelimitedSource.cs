@@ -49,7 +49,27 @@ namespace com.antlersoft.HostedTools.Pipeline
                     var cols = fields.Length > fieldNames.Length ? fieldNames.Length : fields.Length;
                     for (int i=0; i<cols; i++)
                     {
-                        row[fieldNames[i]] = new JsonHtValue(fields[i]);
+                        string txt = fields[i];
+                        string name = fieldNames[i];
+                        long lval;
+                        double dval;
+                        bool bval;
+                        if (long.TryParse(txt, out lval))
+                        {
+                            row[name] = new JsonHtValue(lval);
+                        }
+                        else if (double.TryParse(txt, out dval))
+                        {
+                            row[name] = new JsonHtValue(dval);
+                        }
+                        else if (bool.TryParse(txt, out bval))
+                        {
+                            row[name] = new JsonHtValue(bval);
+                        }
+                        else
+                        {
+                            row[name] = new JsonHtValue(txt);
+                        }
                     }
                     yield return row;
                 }
